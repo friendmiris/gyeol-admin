@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결 · 운영자 콘솔 — 퍼실리테이션 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- 파이어베이스(신청 데이터 불러오기). 사용자 앱과 똑같은 설정을 붙여넣으세요. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // ↓↓↓ 사용자 앱(gyeol.html)에 넣은 것과 똑같은 설정을 붙여넣으세요.
+  window.firebaseConfig = {
+    apiKey: "AIzaSyD1pJ0oLadErRGbR2D7nH-sdwn2jggi2O0",
+    authDomain: "gyeol-3d241.firebaseapp.com",
+    projectId: "gyeol-3d241",
+    storageBucket: "gyeol-3d241.firebasestorage.app",
+    messagingSenderId: "1014313992794",
+    appId: "1:1014313992794:web:bd0df055e24599200c0e63"
+  };
+  window.db = null;
+  try{
+    if(firebaseConfig && firebaseConfig.projectId){
+      firebase.initializeApp(firebaseConfig);
+      window.db = firebase.firestore();
+    }
+  }catch(e){ console.warn('Firebase init 실패:', e); }
+</script>
+<style>
+  :root{
+    --paper:#F4F1E8;
+    --paper-soft:#EFEBDF;
+    --card:#FBFAF4;
+    --ink:#2A2823;
+    --muted:#7C766A;
+    --faint:#A8A293;
+    --line:#E2DCCB;
+    --line-soft:#EAE5D6;
+    --sage:#7C8B6E;
+    --sage-deep:#5C6A4E;
+    --sage-mist:#E4E8DA;
+    --clay:#B0816A;
+    --clay-soft:#E8DACE;
+    --gold:#A8915C;
+    --won:#5C6A4E;
+    --wait:#B0816A;
+    --shadow:0 24px 60px -28px rgba(60,55,40,.4);
+    --shadow-soft:0 14px 34px -22px rgba(60,55,40,.32);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  /* 한국어: 단어 단위 줄바꿈 강제 — 글자 단위로 잘리지 않게 */
+  *{word-break:keep-all;overflow-wrap:break-word;}
+  body{
+    font-family:'Noto Sans KR',sans-serif;background:var(--paper);color:var(--ink);
+    min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.6;
+  }
+  .serif{font-family:'Noto Serif KR',serif;}
+  .fr{font-family:'Fraunces',serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  ::selection{background:var(--sage-mist);}
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+  }
+  button{font-family:inherit;cursor:pointer;color:inherit;}
+  input{font-family:inherit;}
+
+  /* ============ LOGIN ============ */
+  #login{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{
+    width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);
+    border-radius:24px;padding:40px 32px 34px;box-shadow:var(--shadow);text-align:center;
+  }
+  .orb{width:58px;height:58px;border-radius:50%;margin:0 auto 24px;
+    background:radial-gradient(circle at 35% 30%, #F4F1E8, #B7C0A6 55%, var(--sage-deep));
+    box-shadow:0 14px 30px -12px rgba(92,106,78,.5);}
+  .login-card .role{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.26em;
+    color:var(--sage-deep);text-transform:uppercase;margin-bottom:10px;}
+  .login-card .title{font-family:'Noto Serif KR',serif;font-size:24px;font-weight:700;color:var(--ink);margin-bottom:28px;}
+  .lf{text-align:left;margin-bottom:14px;}
+  .lf label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px;letter-spacing:.02em;}
+  .lf input{width:100%;padding:13px 15px;border:1px solid var(--line);border-radius:12px;
+    background:var(--paper);font-size:16px;color:var(--ink);outline:none;transition:border .18s;}
+  .lf input:focus{border-color:var(--sage);}
+  .pw-wrap{position:relative;}
+  .pw-wrap input{padding-right:56px;}
+  .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    background:none;border:none;font-size:13px;color:var(--muted);padding:6px 8px;letter-spacing:.02em;}
+  .pw-eye:hover{color:var(--sage-deep);}
+  .login-btn{width:100%;padding:15px;border:none;border-radius:13px;background:var(--ink);
+    color:var(--paper);font-size:16.5px;font-weight:500;margin-top:8px;letter-spacing:.01em;
+    transition:transform .15s, box-shadow .15s;box-shadow:0 10px 24px -12px rgba(42,40,35,.6);}
+  .login-btn:hover{transform:translateY(-2px);}
+  .login-err{font-size:14px;color:#B0563E;margin-top:14px;min-height:16px;}
+  .login-hint{font-size:12.5px;color:var(--faint);margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft);line-height:1.7;}
+
+  /* ============ CONSOLE ============ */
+  #console{display:none;position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:26px 22px 60px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:26px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand .bmark{width:40px;height:40px;border-radius:12px;background:var(--sage-mist);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brand .bmark .fr{font-size:20.5px;color:var(--sage-deep);}
+  .brand .t{font-family:'Noto Serif KR',serif;font-size:19.5px;font-weight:600;letter-spacing:.01em;}
+  .brand .s{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-top:2px;}
+  .topbar-right{display:flex;align-items:center;gap:12px;}
+  .pill{font-size:13px;color:var(--sage-deep);background:var(--sage-mist);padding:7px 14px;border-radius:20px;letter-spacing:.02em;}
+  .logout{font-size:14.5px;color:var(--muted);background:none;border:1px solid var(--line);padding:8px 16px;border-radius:20px;transition:all .18s;}
+  .logout:hover{border-color:var(--clay);color:var(--clay);}
+
+  .actions{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+  .abtn{font-size:15px;padding:11px 18px;border-radius:12px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);transition:all .18s;display:flex;align-items:center;gap:7px;}
+  .abtn:hover{border-color:var(--sage);transform:translateY(-1px);}
+  .abtn.primary{background:var(--sage-deep);color:#F4F1E8;border-color:var(--sage-deep);box-shadow:0 10px 22px -12px rgba(92,106,78,.6);}
+  .abtn.primary:hover{background:#4F5C43;}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--card);border:1px solid var(--line-soft);border-radius:18px;padding:20px 18px;position:relative;overflow:hidden;}
+  .stat-card::after{content:"";position:absolute;right:-20px;top:-20px;width:70px;height:70px;border-radius:50%;background:var(--sage-mist);opacity:.5;}
+  .stat-card .l{font-size:13px;color:var(--muted);letter-spacing:.02em;position:relative;}
+  .stat-card .v{font-family:'Fraunces',serif;font-size:39px;font-weight:500;color:var(--ink);margin-top:8px;line-height:1;position:relative;}
+  .stat-card .v span{font-family:'Noto Sans KR';font-size:16px;font-weight:400;color:var(--muted);margin-left:3px;}
+  .stat-card .d{font-size:12.5px;color:var(--faint);margin-top:8px;position:relative;}
+  .stat-card.accent .v{color:var(--sage-deep);}
+  .stat-card.clay .v{color:var(--clay);}
+
+  /* panels */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .panel{background:var(--card);border:1px solid var(--line-soft);border-radius:18px;padding:22px 22px 20px;}
+  .panel-t{font-family:'Noto Serif KR',serif;font-size:16.5px;font-weight:600;margin-bottom:20px;
+    display:flex;align-items:center;gap:9px;}
+  .panel-t .pn{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--clay);letter-spacing:.06em;}
+
+  /* date chart */
+  #dateChart{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:6px;}
+  .dbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;}
+  .dbar .bar{width:100%;max-width:34px;background:linear-gradient(180deg,var(--sage),var(--sage-deep));
+    border-radius:6px 6px 0 0;min-height:4px;transition:height 1s cubic-bezier(.2,.8,.2,1);position:relative;}
+  .dbar .bar .cnt{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:11.5px;font-weight:500;color:var(--sage-deep);font-family:'JetBrains Mono',monospace;}
+  .dbar .dl{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.3;}
+  .dbar .dl b{display:block;font-size:13px;color:var(--ink);font-weight:500;}
+
+  /* time bars */
+  #timeBars{display:flex;flex-direction:column;gap:13px;}
+  .tbar{display:flex;align-items:center;gap:12px;}
+  .tbar .tl{font-size:14px;color:var(--ink);width:62px;flex-shrink:0;}
+  .tbar .track{flex:1;height:9px;background:var(--line-soft);border-radius:5px;overflow:hidden;}
+  .tbar .track > i{display:block;height:100%;border-radius:5px;width:0;
+    background:linear-gradient(90deg,var(--clay),#C99A7E);transition:width 1s ease;}
+  .tbar .tc{font-size:12.5px;color:var(--muted);width:30px;text-align:right;font-family:'JetBrains Mono',monospace;}
+
+  /* progress */
+  .progress-track{height:14px;background:var(--line-soft);border-radius:8px;overflow:hidden;display:flex;}
+  .progress-track > i{height:100%;transition:width 1s ease;}
+  .progress-track .p-won{background:var(--won);}
+  .progress-track .p-wait{background:var(--clay);}
+  .legend{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;}
+  .legend .lg{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);}
+  .legend .dot{width:10px;height:10px;border-radius:3px;}
+  .legend .dot.won{background:var(--won);}
+  .legend .dot.wait{background:var(--clay);}
+  .legend .dot.none{background:var(--line);}
+
+  /* table */
+  .panel.full{margin-top:16px;}
+  .table-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+  .tabs{display:flex;gap:6px;}
+  .tab{font-size:14.5px;padding:8px 16px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--muted);transition:all .18s;}
+  .tab.on{background:var(--sage-deep);color:#F4F1E8;border-color:var(--sage-deep);}
+  .search{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:7px 13px;}
+  .search input{border:none;outline:none;background:transparent;font-size:15px;color:var(--ink);width:150px;}
+  .search input::placeholder{color:var(--faint);}
+
+  .tbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--line-soft);}
+  table{width:100%;border-collapse:collapse;min-width:760px;}
+  thead th{font-size:12.5px;color:var(--faint);font-weight:500;text-align:left;padding:13px 14px;
+    background:var(--paper-soft);letter-spacing:.04em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;
+    border-bottom:1px solid var(--line);white-space:nowrap;}
+  tbody td{padding:14px;font-size:15px;color:var(--ink);border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{transition:background .15s;}
+  tbody tr:hover{background:var(--paper-soft);}
+  .cell-name{font-weight:500;display:flex;align-items:center;gap:9px;}
+  .av{width:30px;height:30px;border-radius:9px;background:var(--sage-mist);display:flex;align-items:center;
+    justify-content:center;font-size:14px;color:var(--sage-deep);flex-shrink:0;font-family:'Noto Serif KR';}
+  .mbti-tag{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.06em;color:var(--clay);
+    background:var(--clay-soft);padding:3px 8px;border-radius:6px;display:inline-block;}
+  .tel{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted);}
+  .sched{font-size:13px;color:var(--muted);line-height:1.5;}
+  .sched .d{color:var(--ink);}
+  .agree-ok{color:var(--sage-deep);font-weight:500;}
+  .agree-no{color:var(--clay);}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 11px;border-radius:16px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;}
+  .status.won{background:var(--sage-mist);color:var(--sage-deep);}
+  .status.wait{background:var(--clay-soft);color:#8A5E45;}
+  .status:hover{border-color:currentColor;}
+  .status .sd{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .empty-row{text-align:center;padding:40px;color:var(--faint);font-size:15px;}
+
+  .foot-note{font-size:12.5px;color:var(--faint);margin-top:20px;text-align:center;line-height:1.7;}
+
+  /* toast */
+  #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper);padding:12px 22px;border-radius:30px;font-size:15px;
+    opacity:0;transition:all .3s;pointer-events:none;z-index:99;box-shadow:var(--shadow);}
+
+  @media (max-width:760px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .grid2{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="orb"></div>
+    <div class="role">Facilitation Admin</div>
+    <div class="title">결 운영자 콘솔</div>
+    <div class="lf">
+      <label>아이디</label>
+      <input type="text" id="adminId" placeholder="admin" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="lf">
+      <label>비밀번호</label>
+      <div class="pw-wrap">
+        <input type="password" id="adminPw" placeholder="비밀번호" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" class="pw-eye" id="pwEye" onclick="togglePw()" aria-label="비밀번호 보기">보기</button>
+      </div>
+    </div>
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-hint">결 퍼실리테이션 신청자를 관리하는 운영자 전용 콘솔이에요.</div>
+  </div>
+</div>
+
+<!-- ============ CONSOLE ============ -->
+<div id="console">
+  <div class="topbar">
+    <div class="brand">
+      <div class="bmark"><span class="fr">결</span></div>
+      <div>
+        <div class="t">결 운영자 콘솔</div>
+        <div class="s">Facilitation Management</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill" id="adminPill">admin 님</span>
+      <button class="logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="abtn primary" onclick="runLottery()">🎲 추첨 실행</button>
+    <button class="abtn" onclick="resetStatus()">↺ 추첨 초기화</button>
+    <button class="abtn" onclick="exportCSV()">⤓ CSV 내보내기</button>
+    <button class="abtn" onclick="addDemo()">＋ 데모 신청자 추가</button>
+  </div>
+
+  <!-- stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="l">총 신청자</div>
+      <div class="v" id="st-total">0<span>명</span></div>
+      <div class="d" id="st-total-d">집계 대기 중</div>
+    </div>
+    <div class="stat-card accent">
+      <div class="l">확정 정원</div>
+      <div class="v" id="st-won">0<span>명</span></div>
+      <div class="d" id="st-rate">경쟁률 —</div>
+    </div>
+    <div class="stat-card">
+      <div class="l">동의 완료율</div>
+      <div class="v" id="st-agree">—</div>
+      <div class="d">필수 2개 항목 기준</div>
+    </div>
+    <div class="stat-card clay">
+      <div class="l">일정 미선택</div>
+      <div class="v" id="st-noslot">0<span>명</span></div>
+      <div class="d">확인 필요</div>
+    </div>
+  </div>
+
+  <!-- charts -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-t"><span class="pn">A</span>선호 날짜 분포</div>
+      <div id="dateChart"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-t"><span class="pn">B</span>선호 시간대</div>
+      <div id="timeBars"></div>
+    </div>
+  </div>
+
+  <!-- progress -->
+  <div class="panel">
+    <div class="panel-t"><span class="pn">C</span>추첨 진행률</div>
+    <div class="progress-track" id="progTrack">
+      <i class="p-won" id="pgWon" style="width:0"></i>
+      <i class="p-wait" id="pgWait" style="width:0"></i>
+    </div>
+    <div class="legend">
+      <div class="lg"><span class="dot won"></span><span id="lg-won">확정 0</span></div>
+      <div class="lg"><span class="dot wait"></span><span id="lg-wait">응답 대기 0</span></div>
+      <div class="lg"><span class="dot none"></span><span id="lg-none">미추첨 0</span></div>
+    </div>
+  </div>
+
+  <!-- table -->
+  <div class="panel full">
+    <div class="table-head">
+      <div class="tabs">
+        <button class="tab on" data-f="all" onclick="setFilter('all',this)">전체</button>
+        <button class="tab" data-f="won" onclick="setFilter('won',this)">확정</button>
+        <button class="tab" data-f="wait" onclick="setFilter('wait',this)">대기</button>
+      </div>
+      <div class="search">
+        <span style="color:var(--faint)">⌕</span>
+        <input id="searchBox" placeholder="이름·연락처·유형 검색" oninput="renderTable()">
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>신청자</th>
+            <th>유형</th>
+            <th>연락처</th>
+            <th>선호 일정</th>
+            <th>동의</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="foot-note">상태 배지를 눌러 확정/대기를 직접 바꿀 수 있어요. 모든 데이터는 데모용으로 브라우저 메모리에만 존재합니다.</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   결 운영자 콘솔 — 퍼실리테이션 신청자 관리
+   ============================================================ */
+const CREDENTIAL={id:'admin', pw:'베드로'};
+const CAPACITY=8; // 확정 정원
+
+/* ---- 인증 ---- */
+// 한글 입력기에 따라 NFC/NFD가 섞여 들어올 수 있으므로, 양쪽을 모두 같은 기준으로 펼쳐서 비교한다.
+function canon(s){
+  return (s||'').normalize('NFC').replace(/\s+/g,'');
+}
+function pwMatch(input){
+  const a=canon(input);
+  const b=canon(CREDENTIAL.pw);
+  if(a===b) return true;
+  // NFD(자모분리)로 들어온 경우까지 안전하게 한 번 더 비교
+  return (input||'').normalize('NFD').replace(/\s+/g,'') === CREDENTIAL.pw.normalize('NFD').replace(/\s+/g,'');
+}
+function doLogin(){
+  const id=canon(document.getElementById('adminId').value).toLowerCase();
+  const pwRaw=document.getElementById('adminPw').value;
+  const err=document.getElementById('loginErr');
+  if(id===CREDENTIAL.id && pwMatch(pwRaw)){
+    err.textContent='';
+    document.getElementById('login').style.display='none';
+    document.getElementById('console').style.display='block';
+    document.getElementById('adminPill').textContent=CREDENTIAL.id+' 님';
+    initData();
+    renderAll();
+  }else{
+    err.textContent='아이디 또는 비밀번호가 일치하지 않아요.';
+    document.getElementById('adminPw').value='';
+    document.getElementById('adminPw').focus();
+  }
+}
+function doLogout(){
+  document.getElementById('console').style.display='none';
+  document.getElementById('login').style.display='flex';
+  document.getElementById('adminId').value='';
+  document.getElementById('adminPw').value='';
+}
+function togglePw(){
+  const inp=document.getElementById('adminPw');
+  const eye=document.getElementById('pwEye');
+  if(inp.type==='password'){ inp.type='text'; eye.textContent='숨기기'; }
+  else{ inp.type='password'; eye.textContent='보기'; }
+}
+
+/* ---- 데모 데이터 ---- */
+const DATES=['6/22 월','6/23 화','6/24 수','6/25 목','6/26 금','6/27 토','6/28 일'];
+const SLOTS=['오전 10시','오전 11시','오후 1시','오후 2시','오후 4시','저녁 7시'];
+const TYPE_NAMES={
+  INFP:'영감을 좇는 자유로운 영혼', ENFP:'햇살 같은 영감가', INFJ:'고요히 길을 비추는 통찰가',
+  INTJ:'조용히 설계하는 전략가', ISFJ:'곁을 지키는 다정한 수호자', ISTJ:'묵묵히 쌓는 청지기',
+  ENFJ:'따뜻한 길잡이 멘토', ENTP:'판을 흔드는 도전자', ISFP:'조용한 감성의 방랑자',
+  ESFJ:'든든한 관계의 조율가', ESFP:'분위기를 살리는 무드메이커', INTP:'경계를 넘나드는 사색가',
+  ISTP:'혼자 길을 내는 해결사', ENTJ:'추진력 있는 지휘자', ESTJ:'질서를 세우는 관리자', ESTP:'속도의 추진가'
+};
+const TYPE_KEYS=Object.keys(TYPE_NAMES);
+
+const SEED=[
+  ['김서연','INFP',['6/22 월','6/25 목'],['오전 10시','오후 2시'],true],
+  ['이준호','ENTJ',['6/24 수'],['저녁 7시'],true],
+  ['박지우','ENFP',['6/23 화','6/26 금','6/27 토'],['오전 11시','오후 1시'],true],
+  ['최민재','ISTJ',['6/28 일'],['오전 10시'],true],
+  ['정하늘','INFJ',['6/25 목','6/26 금'],['오후 4시'],true],
+  ['강도윤','ESFP',['6/22 월'],['오후 2시','저녁 7시'],false],
+  ['윤서아','ISFP',['6/27 토','6/28 일'],['오전 11시'],true],
+  ['임채원','INTP',['6/24 수','6/25 목'],['오후 1시'],true],
+  ['한지호','ENFJ',['6/23 화'],['오전 10시','오전 11시'],true],
+  ['오유진','ISFJ',[],[],true],          // 일정 미선택
+  ['신동훈','ESTP',['6/26 금','6/27 토'],['저녁 7시'],true],
+  ['배수빈','ENTP',['6/22 월','6/24 수'],['오후 2시'],true],
+  ['문가람','INTJ',['6/25 목'],['오후 4시','저녁 7시'],true],
+  ['조은채','ESFJ',['6/23 화','6/28 일'],['오전 10시'],true],
+  ['홍지안','ISTP',['6/26 금'],[],false],  // 일정 미선택+미동의
+];
+let applicants=[];
+let filter='all';
+let fbStarted=false;
+
+function initData(){
+  if(!Array.isArray(applicants)) applicants=[];
+  // 파이어베이스가 설정돼 있으면 실시간으로 신청자 불러오기
+  if(window.db && !fbStarted){
+    fbStarted=true;
+    window.db.collection('applications').orderBy('createdAt','desc')
+      .onSnapshot(snap=>{
+        applicants = snap.docs.map((doc,i)=>{
+          const d=doc.data();
+          return {
+            id:doc.id,
+            name:d.name||'(이름없음)',
+            mbti:d.mbti||'',
+            typeName:d.typeName||'',
+            dates:d.dates||[],
+            slots:d.slots||[],
+            agree:d.agree!==false,
+            status:d.status||'wait',
+            tel:d.tel||'',
+            createdAt:d.createdAt||0
+          };
+        });
+        renderAll();
+      }, err=>{
+        console.warn('신청 불러오기 실패:', err);
+        toast('신청 데이터를 불러오지 못했어요');
+      });
+  }
+}
+
+/* ---- 추첨 ---- */
+function runLottery(){
+  // 자격: 동의 완료 + 일정 1개 이상 선택
+  const eligible=applicants.filter(a=>a.agree && a.dates.length>0 && a.slots.length>0);
+  const ineligible=applicants.filter(a=>!(a.agree && a.dates.length>0 && a.slots.length>0));
+  // 셔플 후 정원만큼 확정
+  const shuffled=[...eligible].sort(()=>Math.random()-0.5);
+  shuffled.forEach((a,i)=> a.status = i<CAPACITY ? 'won' : 'wait');
+  ineligible.forEach(a=> a.status='wait');
+  renderAll();
+  const wonCnt=applicants.filter(a=>a.status==='won').length;
+  toast(`추첨 완료 — ${wonCnt}명 확정`);
+}
+function resetStatus(){
+  applicants.forEach(a=>a.status='wait');
+  renderAll();
+  toast('추첨이 초기화됐어요');
+}
+function toggleStatus(id){
+  const a=applicants.find(x=>x.id===id);
+  if(!a) return;
+  const next = a.status==='won' ? 'wait' : 'won';
+  if(window.db && fbStarted){
+    // DB 업데이트 → 실시간 구독이 화면을 자동 갱신
+    window.db.collection('applications').doc(String(id)).update({status:next})
+      .catch(err=>{ console.warn('상태 변경 실패:', err); toast('상태 변경에 실패했어요'); });
+  }else{
+    a.status=next;
+    renderAll();
+  }
+}
+
+/* ---- 데모 추가 ---- */
+function addDemo(){
+  const names=['서지민','김태현','이하린','노준영','곽시우','류예린','남도경','봉하은'];
+  const nm=names[Math.floor(Math.random()*names.length)]+Math.floor(Math.random()*90+10);
+  const mbti=TYPE_KEYS[Math.floor(Math.random()*TYPE_KEYS.length)];
+  const dc=[...DATES].sort(()=>Math.random()-.5).slice(0,Math.floor(Math.random()*3)+1);
+  const sc=[...SLOTS].sort(()=>Math.random()-.5).slice(0,Math.floor(Math.random()*2)+1);
+  applicants.unshift({
+    id:Math.max(0,...applicants.map(a=>a.id))+1, name:nm, mbti, dates:dc, slots:sc,
+    agree:Math.random()>0.15, status:'wait',
+    tel:'010-'+String(1000+Math.floor(Math.random()*8999))+'-'+String(1000+Math.floor(Math.random()*8999)),
+    appliedAt:Date.now(),
+  });
+  renderAll();
+  toast('데모 신청자가 추가됐어요');
+}
+
+/* ---- CSV ---- */
+function exportCSV(){
+  const head=['이름','유형','유형명','연락처','선호날짜','선호시간','동의','상태'];
+  const rows=applicants.map(a=>[
+    a.name, a.mbti, TYPE_NAMES[a.mbti]||'', a.tel,
+    a.dates.join(' / ')||'미선택', a.slots.join(' / ')||'미선택',
+    a.agree?'동의':'미동의', a.status==='won'?'확정':'대기'
+  ]);
+  const csv=[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='결_퍼실리테이션_신청자.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV를 내려받았어요');
+}
+
+/* ---- 렌더 ---- */
+function renderAll(){
+  renderStats();
+  renderDateChart();
+  renderTimeBars();
+  renderProgress();
+  renderTable();
+}
+
+function renderStats(){
+  const total=applicants.length;
+  const won=applicants.filter(a=>a.status==='won').length;
+  const agreed=applicants.filter(a=>a.agree).length;
+  const noslot=applicants.filter(a=>a.dates.length===0||a.slots.length===0).length;
+  document.getElementById('st-total').innerHTML=total+'<span>명</span>';
+  document.getElementById('st-total-d').textContent=`동의 ${agreed}명 · 미동의 ${total-agreed}명`;
+  document.getElementById('st-won').innerHTML=won+'<span>명</span>';
+  const eligible=applicants.filter(a=>a.agree && a.dates.length>0 && a.slots.length>0).length;
+  document.getElementById('st-rate').textContent= won>0 ? `경쟁률 ${(eligible/CAPACITY).toFixed(1)} : 1` : `정원 ${CAPACITY}명`;
+  document.getElementById('st-agree').textContent= total>0 ? Math.round(agreed/total*100)+'%' : '—';
+  document.getElementById('st-noslot').innerHTML=noslot+'<span>명</span>';
+}
+
+function renderDateChart(){
+  const counts=DATES.map(d=>applicants.filter(a=>a.dates.includes(d)).length);
+  const max=Math.max(1,...counts);
+  document.getElementById('dateChart').innerHTML=DATES.map((d,i)=>{
+    const [num,dow]=d.split(' ');
+    const h=Math.round(counts[i]/max*100);
+    return `<div class="dbar">
+      <div class="bar" style="height:0" data-h="${h}"><span class="cnt">${counts[i]}</span></div>
+      <div class="dl"><b>${num}</b>${dow}</div>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(()=>setTimeout(()=>{
+    document.querySelectorAll('#dateChart .bar').forEach(b=>b.style.height=b.dataset.h+'%');
+  },80));
+}
+
+function renderTimeBars(){
+  const counts=SLOTS.map(s=>applicants.filter(a=>a.slots.includes(s)).length);
+  const max=Math.max(1,...counts);
+  document.getElementById('timeBars').innerHTML=SLOTS.map((s,i)=>
+    `<div class="tbar">
+      <span class="tl">${s}</span>
+      <div class="track"><i data-w="${Math.round(counts[i]/max*100)}" style="width:0"></i></div>
+      <span class="tc">${counts[i]}</span>
+    </div>`).join('');
+  requestAnimationFrame(()=>setTimeout(()=>{
+    document.querySelectorAll('#timeBars .track > i').forEach(b=>b.style.width=b.dataset.w+'%');
+  },80));
+}
+
+function renderProgress(){
+  const total=applicants.length||1;
+  const won=applicants.filter(a=>a.status==='won').length;
+  const wait=applicants.filter(a=>a.status==='wait' && a.agree && a.dates.length>0 && a.slots.length>0).length;
+  const none=total-won-wait;
+  document.getElementById('pgWon').style.width=(won/total*100)+'%';
+  document.getElementById('pgWait').style.width=(wait/total*100)+'%';
+  document.getElementById('lg-won').textContent='확정 '+won;
+  document.getElementById('lg-wait').textContent='응답 대기 '+wait;
+  document.getElementById('lg-none').textContent='미추첨/부적격 '+none;
+}
+
+function renderTable(){
+  const q=(document.getElementById('searchBox').value||'').trim().toLowerCase();
+  let list=applicants.filter(a=>{
+    if(filter==='won' && a.status!=='won') return false;
+    if(filter==='wait' && a.status!=='wait') return false;
+    if(q){
+      const hay=(a.name+a.tel+a.mbti+(TYPE_NAMES[a.mbti]||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const tb=document.getElementById('tbody');
+  if(list.length===0){
+    const msg = applicants.length===0
+      ? '아직 신청자가 없어요. 신청이 접수되면 여기에 표시돼요.'
+      : '조건에 맞는 신청자가 없어요.';
+    tb.innerHTML=`<tr><td colspan="6" class="empty-row">${msg}</td></tr>`;
+    return;
+  }
+  tb.innerHTML=list.map(a=>{
+    const sched = (a.dates.length||a.slots.length)
+      ? `<div class="sched"><span class="d">${a.dates.join(', ')||'날짜 미선택'}</span><br>${a.slots.join(', ')||'시간 미선택'}</div>`
+      : `<div class="sched" style="color:var(--clay)">일정 미선택</div>`;
+    const agree = a.agree ? `<span class="agree-ok">✓ 완료</span>` : `<span class="agree-no">미동의</span>`;
+    const st = a.status==='won'
+      ? `<span class="status won" onclick="toggleStatus(${a.id})"><span class="sd"></span>확정</span>`
+      : `<span class="status wait" onclick="toggleStatus(${a.id})"><span class="sd"></span>대기</span>`;
+    return `<tr>
+      <td><div class="cell-name"><span class="av">${a.name.charAt(0)}</span>${a.name}</div></td>
+      <td><span class="mbti-tag">${a.mbti}</span><div style="font-size:10.5px;color:var(--faint);margin-top:4px">${TYPE_NAMES[a.mbti]||''}</div></td>
+      <td><span class="tel">${a.tel}</span></td>
+      <td>${sched}</td>
+      <td>${agree}</td>
+      <td>${st}</td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f,el){
+  filter=f;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderTable();
+}
+
+/* ---- toast ---- */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(20px)';},2000);
+}
+</script>
+</body>
+</html>
